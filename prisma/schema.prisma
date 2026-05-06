@@ -1,0 +1,371 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// TENANT / CLIENTI
+// ============================================================
+model Client {
+  id              String   @id @default(cuid())
+  slug            String   @unique
+  ragioneSociale  String
+  partitaIva      String?
+  codiceFiscale   String?
+  indirizzo       String?
+  citta           String?
+  cap             String?
+  provincia       String?
+  email           String?
+  telefono        String?
+  logoUrl         String?
+  primaryColor    String   @default("#0ea5e9")
+  secondaryColor  String   @default("#64748b")
+  locale          String   @default("it")
+  currency        String   @default("EUR")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  users           User[]
+  modules         ClientModule[]
+  products        Product[]
+  movements       StockMovement[]
+  suppliers       Supplier[]
+  supplierOrders  SupplierOrder[]
+  haccpLots       HaccpLot[]
+  fridges         Fridge[]
+  fridgeReadings  FridgeReading[]
+  alerts          Alert[]
+  auditLogs       AuditLog[]
+  notifications   Notification[]
+}
+
+// ============================================================
+// AUTH
+// ============================================================
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+model User {
+  id           String   @id @default(cuid())
+  clientId     String?
+  email        String
+  passwordHash String
+  name         String
+  role         Role     @default(STAFF)
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastLoginAt  DateTime?
+
+  client       Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  movements    StockMovement[]
+  fridgeReadings FridgeReading[]
+  auditLogs    AuditLog[]
+
+  @@unique([clientId, email])
+  @@index([clientId])
+}
+
+// ============================================================
+// MODULI / BILLING (flag-only ora)
+// ============================================================
+model Module {
+  key          String  @id
+  name         String
+  description  String
+  category     String  @default("extra")
+  isPaid       Boolean @default(true)
+  priceMonthly Decimal? @db.Decimal(10, 2)
+  icon         String?
+  sortOrder    Int     @default(0)
+  active       Boolean @default(true)
+
+  clients      ClientModule[]
+}
+
+model ClientModule {
+  clientId   String
+  moduleKey  String
+  enabled    Boolean   @default(false)
+  expiresAt  DateTime?
+  config     Json?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  client     Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  module     Module    @relation(fields: [moduleKey], references: [key], onDelete: Cascade)
+
+  @@id([clientId, moduleKey])
+  @@index([clientId])
+}
+
+// ============================================================
+// MAGAZZINO (free)
+// ============================================================
+model ProductCategory {
+  id        String  @id @default(cuid())
+  clientId  String
+  name      String
+  color     String?
+
+  products  Product[]
+
+  @@unique([clientId, name])
+  @@index([clientId])
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  clientId      String
+  sku           String
+  barcode       String?
+  name          String
+  description   String?
+  unit          String   @default("pz")
+  categoryId    String?
+  supplierId    String?
+  costPrice     Decimal  @default(0) @db.Decimal(12, 4)
+  sellPrice     Decimal  @default(0) @db.Decimal(12, 4)
+  vatRate       Decimal  @default(22) @db.Decimal(5, 2)
+  minStock      Decimal  @default(0) @db.Decimal(14, 4)
+  currentStock  Decimal  @default(0) @db.Decimal(14, 4)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  client        Client           @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  category      ProductCategory? @relation(fields: [categoryId], references: [id])
+  supplier      Supplier?        @relation(fields: [supplierId], references: [id])
+  movements     StockMovement[]
+  haccpLots     HaccpLot[]
+  alerts        Alert[]
+  orderItems    SupplierOrderItem[]
+
+  @@unique([clientId, sku])
+  @@index([clientId])
+  @@index([clientId, categoryId])
+  @@index([clientId, supplierId])
+}
+
+enum MovementType {
+  LOAD
+  UNLOAD
+  ADJUST
+  WASTE
+  TRANSFER
+}
+
+model StockMovement {
+  id         String       @id @default(cuid())
+  clientId   String
+  productId  String
+  type       MovementType
+  quantity   Decimal      @db.Decimal(14, 4)
+  unitCost   Decimal?     @db.Decimal(12, 4)
+  note       String?
+  userId     String?
+  createdAt  DateTime     @default(now())
+
+  client     Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  product    Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user       User?        @relation(fields: [userId], references: [id])
+
+  @@index([clientId, productId])
+  @@index([clientId, createdAt])
+}
+
+// ============================================================
+// FORNITORI / ORDINI
+// ============================================================
+model Supplier {
+  id        String  @id @default(cuid())
+  clientId  String
+  name      String
+  vatNumber String?
+  email     String?
+  phone     String?
+  address   String?
+  notes     String?
+  active    Boolean @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  client    Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  products  Product[]
+  orders    SupplierOrder[]
+
+  @@index([clientId])
+}
+
+enum SupplierOrderStatus {
+  DRAFT
+  SENT
+  CONFIRMED
+  RECEIVED
+  CANCELLED
+}
+
+model SupplierOrder {
+  id         String              @id @default(cuid())
+  clientId   String
+  supplierId String
+  number     String
+  status     SupplierOrderStatus @default(DRAFT)
+  notes      String?
+  total      Decimal             @default(0) @db.Decimal(12, 2)
+  sentAt     DateTime?
+  receivedAt DateTime?
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  client     Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  supplier   Supplier            @relation(fields: [supplierId], references: [id])
+  items      SupplierOrderItem[]
+
+  @@unique([clientId, number])
+  @@index([clientId, supplierId])
+}
+
+model SupplierOrderItem {
+  id        String  @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Decimal @db.Decimal(14, 4)
+  unitCost  Decimal @db.Decimal(12, 4)
+
+  order     SupplierOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product       @relation(fields: [productId], references: [id])
+}
+
+// ============================================================
+// HACCP (paid)
+// ============================================================
+model HaccpLot {
+  id         String   @id @default(cuid())
+  clientId   String
+  productId  String
+  lotCode    String
+  quantity   Decimal  @db.Decimal(14, 4)
+  receivedAt DateTime @default(now())
+  expiresAt  DateTime
+  notes      String?
+  consumed   Boolean  @default(false)
+
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id])
+
+  @@index([clientId, productId])
+  @@index([clientId, expiresAt])
+}
+
+model Fridge {
+  id          String  @id @default(cuid())
+  clientId    String
+  name        String
+  location    String?
+  minTemp     Decimal @default(0) @db.Decimal(5, 2)
+  maxTemp     Decimal @default(8) @db.Decimal(5, 2)
+  active      Boolean @default(true)
+
+  client      Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  readings    FridgeReading[]
+
+  @@unique([clientId, name])
+  @@index([clientId])
+}
+
+model FridgeReading {
+  id          String   @id @default(cuid())
+  clientId    String
+  fridgeId    String
+  temperature Decimal  @db.Decimal(5, 2)
+  notes       String?
+  userId      String?
+  recordedAt  DateTime @default(now())
+
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  fridge      Fridge   @relation(fields: [fridgeId], references: [id], onDelete: Cascade)
+  user        User?    @relation(fields: [userId], references: [id])
+
+  @@index([clientId, fridgeId, recordedAt])
+}
+
+// ============================================================
+// ALERTS / NOTIFICATIONS
+// ============================================================
+enum AlertType {
+  LOW_STOCK
+  EXPIRING_LOT
+  FRIDGE_OUT_OF_RANGE
+  CUSTOM
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model Alert {
+  id         String        @id @default(cuid())
+  clientId   String
+  type       AlertType
+  severity   AlertSeverity @default(WARNING)
+  title      String
+  message    String
+  productId  String?
+  meta       Json?
+  resolved   Boolean       @default(false)
+  resolvedAt DateTime?
+  createdAt  DateTime      @default(now())
+
+  client     Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  product    Product?      @relation(fields: [productId], references: [id])
+
+  @@index([clientId, resolved, createdAt])
+}
+
+model Notification {
+  id         String   @id @default(cuid())
+  clientId   String
+  userId     String?
+  title      String
+  body       String
+  link       String?
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  client     Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([clientId, userId, read])
+}
+
+// ============================================================
+// AUDIT
+// ============================================================
+model AuditLog {
+  id         String   @id @default(cuid())
+  clientId   String?
+  userId     String?
+  action     String
+  entity     String
+  entityId   String?
+  meta       Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  client     Client?  @relation(fields: [clientId], references: [id])
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([clientId, createdAt])
+}
