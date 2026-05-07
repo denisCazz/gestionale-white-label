@@ -1,11 +1,11 @@
 import { getTranslations } from "next-intl/server";
-import { Lock, Mail } from "lucide-react";
+import { Lock } from "lucide-react";
 import { requireTenant } from "@core/lib/guards";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@core/components/ui/card";
-import { Button } from "@core/components/ui/button";
 import { Badge } from "@core/components/ui/badge";
 import { getModule } from "@core/modules/registry";
 import { PageHeader } from "@core/components/layout/page-header";
+import { RequestModuleButton } from "./request-module-button";
 
 export default async function UpgradePage({
   params,
@@ -16,10 +16,12 @@ export default async function UpgradePage({
 }) {
   const { slug } = await params;
   const { module: moduleKey } = await searchParams;
-  await requireTenant(slug);
+  const { user } = await requireTenant(slug);
   const t = await getTranslations("upgrade");
 
   const mod = moduleKey ? getModule(moduleKey) : null;
+
+  const canRequest = user.role === "ADMIN" || user.role === "MANAGER";
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -47,13 +49,14 @@ export default async function UpgradePage({
               <span className="text-muted-foreground">{t("perMonth")}</span>
             </div>
           )}
-          <p className="text-sm text-muted-foreground">{t("contactAdmin")}</p>
-          <Button asChild>
-            <a href={`mailto:support@example.com?subject=Attivazione modulo ${mod?.name}`}>
-              <Mail className="h-4 w-4" />
-              Contatta supporto
-            </a>
-          </Button>
+          <p className="text-sm text-muted-foreground">
+            {canRequest
+              ? "Clicca il pulsante per richiedere l'attivazione. Riceverai una risposta entro 24 ore."
+              : t("contactAdmin")}
+          </p>
+          {canRequest && mod && (
+            <RequestModuleButton slug={slug} moduleKey={mod.key} moduleName={mod.name} />
+          )}
         </CardContent>
       </Card>
     </div>

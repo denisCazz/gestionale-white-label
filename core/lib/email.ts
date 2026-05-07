@@ -1,5 +1,8 @@
 import { Resend } from "resend";
 
+const FROM = "info@bitora.it";
+const CC_ALWAYS = "deniscazzulo@icloud.com";
+
 let _client: Resend | null = null;
 function client(): Resend | null {
   if (!process.env.RESEND_API_KEY) return null;
@@ -14,18 +17,29 @@ export type SendEmailInput = {
   html?: string;
   from?: string;
   replyTo?: string;
+  cc?: string | string[];
 };
 
 export async function sendEmail(input: SendEmailInput) {
   const c = client();
-  const from = input.from ?? process.env.EMAIL_FROM ?? "noreply@example.com";
+  const from = input.from ?? FROM;
+
+  // Merge CC: sempre includi CC_ALWAYS
+  const ccList: string[] = [];
+  if (input.cc) {
+    const extra = Array.isArray(input.cc) ? input.cc : [input.cc];
+    ccList.push(...extra);
+  }
+  if (!ccList.includes(CC_ALWAYS)) ccList.push(CC_ALWAYS);
+
   if (!c) {
-    console.log("[email:noop] would send", { to: input.to, subject: input.subject });
+    console.log("[email:noop] would send", { to: input.to, subject: input.subject, cc: ccList });
     return { id: "noop" };
   }
   const res = await c.emails.send({
     from,
     to: input.to,
+    cc: ccList,
     subject: input.subject,
     text: input.text ?? "",
     html: input.html,
@@ -34,3 +48,4 @@ export async function sendEmail(input: SendEmailInput) {
   if (res.error) throw new Error(res.error.message);
   return { id: res.data?.id ?? "" };
 }
+

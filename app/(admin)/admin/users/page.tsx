@@ -5,9 +5,10 @@ import { Card, CardContent } from "@core/components/ui/card";
 import { Badge } from "@core/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@core/components/ui/table";
 import { formatDateTime } from "@core/lib/utils";
+import { UserActionsMenu } from "./user-actions-menu";
 
 export default async function AdminUsersPage() {
-  await requireSuperAdmin();
+  const me = await requireSuperAdmin();
 
   const users = await prisma.user.findMany({
     orderBy: [{ clientId: "asc" }, { name: "asc" }],
@@ -28,6 +29,7 @@ export default async function AdminUsersPage() {
                 <TableHead>Ruolo</TableHead>
                 <TableHead>Stato</TableHead>
                 <TableHead>Ultimo accesso</TableHead>
+                <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -46,6 +48,12 @@ export default async function AdminUsersPage() {
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {u.lastLoginAt ? formatDateTime(u.lastLoginAt) : "—"}
+                  </TableCell>
+                  <TableCell>
+                    {/* Non permettere di eliminare se stesso */}
+                    {u.id !== me.id && (
+                      <UserActionsMenu userId={u.id} userName={u.name} />
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

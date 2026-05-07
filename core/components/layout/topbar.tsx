@@ -28,6 +28,8 @@ export function Topbar({
 
   return (
     <header className="h-16 border-b bg-card/50 backdrop-blur sticky top-0 z-30 flex items-center px-4 md:px-6 gap-3">
+      {/* Spacer on mobile to leave room for hamburger button */}
+      <div className="w-8 md:hidden" />
       <div className="flex-1" />
       <form action={switchLocaleAction}>
         <DropdownMenu>
@@ -72,12 +74,11 @@ export function Topbar({
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <form action={logoutAction} className="w-full">
-              <button type="submit" className="flex items-center gap-2 w-full">
-                <LogOut className="h-4 w-4" /> {tc("logout")}
-              </button>
-            </form>
+          <DropdownMenuItem
+            onSelect={() => logoutAction()}
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <LogOut className="h-4 w-4" /> {tc("logout")}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

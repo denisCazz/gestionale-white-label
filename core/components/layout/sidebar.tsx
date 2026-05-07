@@ -15,9 +15,12 @@ import {
   Users,
   Lock,
   Store,
+  Menu,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@core/lib/utils";
+import { Sheet, SheetContent, SheetTrigger } from "@core/components/ui/sheet";
+import { Button } from "@core/components/ui/button";
 
 const ICONS: Record<string, LucideIcon> = {
   LayoutDashboard,
@@ -40,22 +43,22 @@ export type NavItem = {
   enabled: boolean;
 };
 
-export function Sidebar({
+function NavLinks({
   items,
+  basePath,
   brandName,
   logoUrl,
-  basePath,
 }: {
   items: NavItem[];
+  basePath: string;
   brandName: string;
   logoUrl?: string | null;
-  basePath: string;
 }) {
   const pathname = usePathname();
   const tNav = useTranslations("nav");
 
   return (
-    <aside className="hidden md:flex md:w-64 md:flex-col border-r bg-card">
+    <>
       <div className="px-6 py-5 border-b flex items-center gap-3">
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -99,6 +102,48 @@ export function Sidebar({
           );
         })}
       </nav>
-    </aside>
+    </>
+  );
+}
+
+export function Sidebar({
+  items,
+  brandName,
+  logoUrl,
+  basePath,
+}: {
+  items: NavItem[];
+  brandName: string;
+  logoUrl?: string | null;
+  basePath: string;
+}) {
+  return (
+    <>
+      {/* Desktop */}
+      <aside className="hidden md:flex md:w-64 md:flex-col border-r bg-card">
+        <NavLinks items={items} basePath={basePath} brandName={brandName} logoUrl={logoUrl} />
+      </aside>
+
+      {/* Mobile trigger (hamburger button shown in topbar via portal) */}
+      <div className="md:hidden">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="fixed top-3 left-3 z-40"
+              aria-label="Apri menu"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent>
+            <div className="flex flex-col h-full pt-8">
+              <NavLinks items={items} basePath={basePath} brandName={brandName} logoUrl={logoUrl} />
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+    </>
   );
 }
