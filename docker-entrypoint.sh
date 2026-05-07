@@ -24,7 +24,7 @@ pnpm prisma migrate deploy
 # Esegui il seed (moduli + super-admin da ADMIN_EMAIL/ADMIN_PASSWORD)
 # ─────────────────────────────────────────────────────────────
 echo "🌱 Seed database..."
-pnpm db:seed
+pnpm db:seed || echo "⚠️  Seed già eseguito o fallito, continuo avvio..."
 
 # ─────────────────────────────────────────────────────────────
 # Avvia l'applicazione

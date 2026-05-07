@@ -26,7 +26,7 @@ ENV NODE_ENV=production
 # Copia app compilata e dipendenze complete (serve prisma CLI + tsx per migrate/seed)
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
-COPY --from=deps    /app/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY prisma ./prisma
 COPY messages ./messages
