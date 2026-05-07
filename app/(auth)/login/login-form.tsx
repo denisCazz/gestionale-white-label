@@ -34,11 +34,6 @@ export function LoginForm({ next, initialError }: { next?: string; initialError?
         </div>
       )}
       <div className="space-y-2">
-        <Label htmlFor="clientSlug">{t("tenantSlug")}</Label>
-        <Input id="clientSlug" name="clientSlug" placeholder="es. demo" autoComplete="organization" />
-        <p className="text-xs text-muted-foreground">{t("tenantSlugHelp")}</p>
-      </div>
-      <div className="space-y-2">
         <Label htmlFor="email">{tc("email")}</Label>
         <Input id="email" name="email" type="email" required autoComplete="email" />
       </div>

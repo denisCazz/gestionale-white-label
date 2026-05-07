@@ -73,22 +73,31 @@ async function main() {
   }
   console.log(`✅ ${MODULES.length} moduli caricati`);
 
-  // 2. Super-admin globale (no upsert: unique([null, email]) non funziona su PG)
-  const superAdminPwd = await bcrypt.hash("admin123", 12);
-  const existingSuper = await prisma.user.findFirst({
-    where: { clientId: null, email: "admin@gestionale.local" },
-  });
-  if (!existingSuper) {
-    await prisma.user.create({
-      data: {
-        email: "admin@gestionale.local",
-        name: "Super Admin",
-        passwordHash: superAdminPwd,
-        role: "SUPER_ADMIN",
-      },
+  // 2. Super-admin globale — usa le env var ADMIN_EMAIL e ADMIN_PASSWORD
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD;
+
+  if (!adminEmail || !adminPassword) {
+    console.warn("⚠️  ADMIN_EMAIL o ADMIN_PASSWORD non impostati — super-admin non creato");
+  } else {
+    const superAdminPwd = await bcrypt.hash(adminPassword, 12);
+    const existingSuper = await prisma.user.findFirst({
+      where: { clientId: null, email: adminEmail },
     });
+    if (!existingSuper) {
+      await prisma.user.create({
+        data: {
+          email: adminEmail,
+          name: "Super Admin",
+          passwordHash: superAdminPwd,
+          role: "SUPER_ADMIN",
+        },
+      });
+      console.log(`✅ Super-admin creato: ${adminEmail}`);
+    } else {
+      console.log(`ℹ️  Super-admin già esistente: ${adminEmail}`);
+    }
   }
-  console.log("✅ Super-admin: admin@gestionale.local / admin123");
 
   // 3. Demo client "Bar Demo"
   const demo = await prisma.client.upsert({

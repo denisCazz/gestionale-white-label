@@ -55,23 +55,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const parsed = credentialsSchema.safeParse(normalized);
         if (!parsed.success) return null;
-        const { email, password, clientSlug } = parsed.data;
+        const { email, password } = parsed.data;
 
-        let clientId: string | null = null;
-        const slug = typeof clientSlug === "string" ? clientSlug.trim() : "";
-        if (slug && slug !== "undefined") {
-          const c = await prisma.client.findUnique({
-            where: { slug },
-            select: { id: true, active: true },
-          });
-          if (!c || !c.active) return null;
-          clientId = c.id;
-        }
-
+        // Cerca l'utente per email — ogni utente è legato ad una sola azienda
         const user = await prisma.user.findFirst({
-          where: { email: email.toLowerCase(), clientId, active: true },
+          where: { email: email.toLowerCase(), active: true },
         });
         if (!user) return null;
+
+        // Verifica che il client sia attivo (se l'utente appartiene ad un tenant)
+        if (user.clientId) {
+          const c = await prisma.client.findUnique({
+            where: { id: user.clientId },
+            select: { active: true },
+          });
+          if (!c || !c.active) return null;
+        }
 
         const ok = await bcrypt.compare(password, user.passwordHash);
         if (!ok) return null;
