@@ -80,15 +80,16 @@ model User {
 // MODULI / BILLING (flag-only ora)
 // ============================================================
 model Module {
-  key          String  @id
+  key          String   @id
   name         String
   description  String
-  category     String  @default("extra")
-  isPaid       Boolean @default(true)
+  category     String   @default("extra")
+  isPaid       Boolean  @default(true)
   priceMonthly Decimal? @db.Decimal(10, 2)
+  priceOneTime Decimal? @db.Decimal(10, 2)
   icon         String?
-  sortOrder    Int     @default(0)
-  active       Boolean @default(true)
+  sortOrder    Int      @default(0)
+  active       Boolean  @default(true)
 
   clients      ClientModule[]
 }

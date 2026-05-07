@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { X } from "lucide-react";
 import { cn } from "@core/lib/utils";
 
@@ -41,6 +42,9 @@ const SheetContent = React.forwardRef<
       )}
       {...props}
     >
+      <VisuallyHidden>
+        <DialogPrimitive.Title>Menu di navigazione</DialogPrimitive.Title>
+      </VisuallyHidden>
       {children}
       <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 hover:opacity-100">
         <X className="h-5 w-5" />
