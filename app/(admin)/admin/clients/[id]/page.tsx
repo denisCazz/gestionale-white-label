@@ -24,7 +24,18 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   });
   if (!client) notFound();
 
-  const moduleMap = new Map(client.modules.map((m) => [m.moduleKey, m]));
+  interface ClientModuleRow {
+    clientId: string;
+    moduleKey: string;
+    enabled: boolean;
+    expiresAt: Date | null;
+    config: unknown;
+    createdAt: Date;
+    updatedAt: Date;
+  }
+  const moduleMap = new Map(
+    (client.modules as ClientModuleRow[]).map((m) => [m.moduleKey, m] as const)
+  );
 
   return (
     <div>

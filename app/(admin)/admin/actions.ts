@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { type Prisma } from "@prisma/client";
 import { requireSuperAdmin } from "@core/lib/guards";
 import { prisma } from "@core/lib/prisma";
 import { hashPassword } from "@core/lib/auth";
@@ -28,7 +29,7 @@ export async function createClientAction(raw: unknown) {
   const existing = await prisma.client.findUnique({ where: { slug: d.slug } });
   if (existing) return { ok: false, error: "slug_exists" } as const;
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const c = await tx.client.create({
       data: {
         ragioneSociale: d.ragioneSociale,

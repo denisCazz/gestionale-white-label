@@ -17,8 +17,9 @@ export async function resetUserPasswordAction(userId: string, newPassword: strin
 }
 
 export async function deleteUserAction(userId: string) {
-  await requireSuperAdmin();
+  const currentUser = await requireSuperAdmin();
   // Impedisci l'eliminazione del proprio account
+  if (currentUser.id === userId) return { error: "Non puoi eliminare il tuo account" };
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
   if (!user) return { error: "Utente non trovato" };
   await prisma.user.delete({ where: { id: userId } });

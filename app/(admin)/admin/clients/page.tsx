@@ -21,6 +21,8 @@ export default async function AdminClientsPage() {
     },
   });
 
+  type ClientRow = (typeof clients)[number];
+
   return (
     <div>
       <PageHeader
@@ -53,7 +55,7 @@ export default async function AdminClientsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.map((c) => (
+              {clients.map((c: ClientRow) => (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{c.ragioneSociale}</TableCell>
                   <TableCell className="font-mono text-xs">{c.slug}</TableCell>

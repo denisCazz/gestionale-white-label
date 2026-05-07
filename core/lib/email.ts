@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const FROM = "info@bitora.it";
-const CC_ALWAYS = "deniscazzulo@icloud.com";
+const CC_ALWAYS = process.env.NOTIFY_CC_EMAIL ?? "";
 
 let _client: Resend | null = null;
 function client(): Resend | null {
@@ -30,7 +30,7 @@ export async function sendEmail(input: SendEmailInput) {
     const extra = Array.isArray(input.cc) ? input.cc : [input.cc];
     ccList.push(...extra);
   }
-  if (!ccList.includes(CC_ALWAYS)) ccList.push(CC_ALWAYS);
+  if (CC_ALWAYS && !ccList.includes(CC_ALWAYS)) ccList.push(CC_ALWAYS);
 
   if (!c) {
     console.log("[email:noop] would send", { to: input.to, subject: input.subject, cc: ccList });

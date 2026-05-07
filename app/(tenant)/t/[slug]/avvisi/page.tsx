@@ -54,7 +54,7 @@ export default async function AlertsPage({
         </Card>
       ) : (
         <div className="grid gap-3">
-          {alerts.map((a) => (
+          {(alerts as (typeof alerts)[number][]).map((a) => (
             <Card key={a.id}>
               <CardContent className="p-4 flex items-start gap-4">
                 <div className="h-10 w-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 flex items-center justify-center shrink-0">

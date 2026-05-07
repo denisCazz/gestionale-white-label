@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@core
 import { Badge } from "@core/components/ui/badge";
 import { PageHeader } from "@core/components/layout/page-header";
 import { formatDateTime } from "@core/lib/utils";
-import { Prisma } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
 
 export default async function DashboardPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -21,7 +21,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
     db.product.count({
       where: {
         active: true,
-        currentStock: { lte: new Prisma.Decimal(0) },
+        currentStock: { lte: new Decimal(0) },
       },
     }),
     db.stockMovement.count({ where: { createdAt: { gte: startOfDay } } }),
@@ -39,8 +39,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
     take: 5,
     select: { id: true, name: true, sku: true, currentStock: true, minStock: true, unit: true },
   });
+  type LowStockRow = (typeof lowStockProducts)[number];
+  type MovementRow = (typeof recentMovements)[number];
   const actuallyLow = lowStockProducts.filter(
-    (p) => Number(p.currentStock) <= Number(p.minStock)
+    (p: LowStockRow) => Number(p.currentStock) <= Number(p.minStock)
   );
 
   return (
@@ -75,7 +77,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
               <p className="text-sm text-muted-foreground">Nessun prodotto sotto la soglia.</p>
             ) : (
               <ul className="divide-y">
-                {actuallyLow.map((p) => (
+                {actuallyLow.map((p: LowStockRow) => (
                   <li key={p.id} className="py-2 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-medium truncate">{p.name}</p>
@@ -101,7 +103,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ slug
               <p className="text-sm text-muted-foreground">Nessun movimento.</p>
             ) : (
               <ul className="divide-y">
-                {recentMovements.map((m) => (
+                {recentMovements.map((m: MovementRow) => (
                   <li key={m.id} className="py-2 flex items-center justify-between gap-3">
                     <div className="min-w-0">
                       <p className="font-medium truncate">{m.product.name}</p>

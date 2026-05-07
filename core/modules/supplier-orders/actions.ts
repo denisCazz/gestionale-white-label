@@ -1,9 +1,24 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { Prisma } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime/library";
 import { requireModule } from "@core/lib/guards";
 import { sendEmail } from "@core/lib/email";
+
+interface ProductRow {
+  id: string;
+  supplierId: string | null;
+  currentStock: Decimal;
+  minStock: Decimal;
+  costPrice: Decimal;
+  supplier: { name: string; email: string | null } | null;
+}
+
+interface OrderItemRow {
+  quantity: Decimal;
+  unitCost: Decimal;
+  product: { name: string; unit: string } | null;
+}
 
 export async function generateOrdersFromLowStock(slug: string) {
   const { db, tenant } = await requireModule(slug, "supplier-orders");
@@ -15,7 +30,7 @@ export async function generateOrdersFromLowStock(slug: string) {
     },
     include: { supplier: true },
   });
-  const reallyLow = lows.filter((p) => p.currentStock.lte(p.minStock));
+  const reallyLow = lows.filter((p: ProductRow) => p.currentStock.lte(p.minStock));
 
   const grouped = new Map<string, typeof reallyLow>();
   for (const p of reallyLow) {
@@ -28,9 +43,9 @@ export async function generateOrdersFromLowStock(slug: string) {
   let created = 0;
   for (const [supplierId, products] of grouped) {
     const number = await nextOrderNumber(tenant.id);
-    let total = new Prisma.Decimal(0);
-    const items = products.map((p) => {
-      const qty = p.minStock.minus(p.currentStock).plus(p.minStock);
+    let total = new Decimal(0);
+    const items = products.map((p: ProductRow) => {
+      const qty = p.minStock.minus(p.currentStock);
       const cost = p.costPrice;
       total = total.plus(qty.times(cost));
       return { productId: p.id, quantity: qty, unitCost: cost };
@@ -75,7 +90,7 @@ export async function sendOrderEmail(slug: string, orderId: string) {
 
   const lines = order.items
     .map(
-      (it) =>
+      (it: OrderItemRow) =>
         `• ${it.product?.name ?? "?"} — ${Number(it.quantity)} ${it.product?.unit ?? "pz"} @ ${Number(it.unitCost).toFixed(2)} €`
     )
     .join("\n");

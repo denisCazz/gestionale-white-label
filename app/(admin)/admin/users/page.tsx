@@ -15,6 +15,8 @@ export default async function AdminUsersPage() {
     include: { client: { select: { ragioneSociale: true, slug: true } } },
   });
 
+  type UserRow = (typeof users)[number];
+
   return (
     <div>
       <PageHeader title="Utenti globali" subtitle={`${users.length} utenti`} />
@@ -33,7 +35,7 @@ export default async function AdminUsersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((u) => (
+              {users.map((u: UserRow) => (
                 <TableRow key={u.id}>
                   <TableCell className="font-medium">{u.name}</TableCell>
                   <TableCell>{u.email}</TableCell>

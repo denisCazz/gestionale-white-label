@@ -98,7 +98,11 @@ export async function createMovementAction(slug: string, raw: unknown): Promise<
 
 export async function upsertCategoryAction(slug: string, name: string, color?: string) {
   const { db, tenant } = await requireTenant(slug);
-  await db.productCategory.create({ data: { name, color: color || null, clientId: tenant.id } });
+  await db.productCategory.upsert({
+    where: { clientId_name: { clientId: tenant.id, name } },
+    update: { color: color || null },
+    create: { name, color: color || null, clientId: tenant.id },
+  });
   revalidatePath(`/t/${slug}/magazzino`);
   return { ok: true } as const;
 }
